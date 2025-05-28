@@ -1,12 +1,26 @@
-version: '1.0'
-services:
-  mcp-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - NODE_ENV=production
-      # Add any required environment variables here, e.g. EXA_API_KEY
-    command: ["node", "build/index.js"]
+kind: Environment
+name: mcp-exa-search
+type: primary
+components:
+    -
+        kind: Application
+        name: mcp-server
+        gitRepo: 'https://github.com/jrakestr/exa-mcp-server.git'
+        gitBranch: main
+        gitApplicationPath: /
+        dockerCompose:
+            build:
+                context: .
+                dockerfile: Dockerfile
+            command:
+                - node
+                - build/index.js
+            environment:
+                NODE_ENV: production
+            ports:
+                - '8080:8080'
+        hosts:
+            -
+                hostname: 'mcp-server-{{ env.base_domain }}'
+                path: /
+                servicePort: 8080
