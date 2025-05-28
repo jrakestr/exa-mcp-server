@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import dotenv from "dotenv";
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -105,21 +104,39 @@ class ExaServer {
 
   async run(): Promise<void> {
     try {
-      // Set up tools before connecting
       const registeredTools = this.setupTools();
-      
       log(`Starting Exa MCP server with ${registeredTools.length} tools: ${registeredTools.join(', ')}`);
-      
-      const transport = new StdioServerTransport();
-      
+
+      let transport: any;
+      let usingHttp = false;
+      try {
+        // Dynamically import HTTP transport if available
+        // @ts-ignore
+        const { StreamableHTTPServerTransport } = await import("file://" + process.cwd() + "/node_modules/@modelcontextprotocol/sdk/dist/esm/server/streamableHttp.js");
+        const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+        transport = new StreamableHTTPServerTransport({ port });
+        usingHttp = true;
+        log(`Using Streamable HTTP transport on port ${port}`);
+      } catch (err) {
+        log(`[EXA-MCP-DEBUG] Failed to load HTTP transport: ${JSON.stringify(err)}`);
+        // Fallback to stdio transport
+        const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+        transport = new StdioServerTransport();
+        log("Using stdio transport");
+      }
+
       // Handle connection errors
-      transport.onerror = (error) => {
+      transport.onerror = (error: any) => {
         log(`Transport error: ${error.message}`);
       };
-      
+
       await this.server.connect(transport);
-      log("Exa Search MCP server running on stdio");
-    } catch (error) {
+      if (usingHttp) {
+        log("Exa Search MCP server running on HTTP (cloud/desktop compatible)");
+      } else {
+        log("Exa Search MCP server running on stdio (CLI/desktop compatible)");
+      }
+    } catch (error: any) {
       log(`Server initialization error: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }

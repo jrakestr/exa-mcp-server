@@ -33,7 +33,7 @@ RUN npm ci --production --ignore-scripts
 ENV EXA_API_KEY=your-api-key-here
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 8080
 
 # Run the application
 ENTRYPOINT ["node", "build/index.js"]
